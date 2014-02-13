@@ -32,7 +32,9 @@ class PhrasingPhrase < ActiveRecord::Base
       number_of_changes = 0
       hash = YAML.load(yaml)
       hash.each do |locale, data|
-        data.each do |key, value|
+        flat_array = self.flatten_hash(data)
+        nested_hash = Hash[*flat_array]
+        nested_hash.each do |key, value|
           phrase = where(key: key, locale: locale).first || new(key: key, locale: locale)
           if phrase.value != value
             phrase.value = value
@@ -65,6 +67,15 @@ class PhrasingPhrase < ActiveRecord::Base
 
     def version_it
       PhrasingPhraseVersion.create_version(id, value) if value_was != value
+    end
+
+    def self.flatten_hash(my_hash, parent=[])
+      my_hash.flat_map do |key, value|
+        case value
+          when Hash then flatten_hash( value, parent+[key] )
+          else [(parent+[key]).join('.'), value]
+        end
+      end
     end
     
 end
